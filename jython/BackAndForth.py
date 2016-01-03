@@ -20,11 +20,11 @@ class Test14(jmri.jmrit.automat.AbstractAutomaton) :
 
 		# set up sensor numbers
 		# fwdSensor is reached when loco is running forward
-		self.fwdSensor = sensors.provideSensor("513")
-		self.revSensor = sensors.provideSensor("520")
+		self.fwdSensor = sensors.provideSensor("LS16")
+		self.revSensor = sensors.provideSensor("LS15")
 
 		# get loco address. For long address change "False" to "True" 
-		self.throttle = self.getThrottle(14, False)  # short address 14
+		self.throttle = self.getThrottle(16, False)  # short address 14
 
 		return
 
@@ -49,13 +49,13 @@ class Test14(jmri.jmrit.automat.AbstractAutomaton) :
 
 		# delay for a time (remember loco could still be moving
 		# due to simulated or actual inertia). Time is in milliseconds
-		print "wait 20 seconds"
-		self.waitMsec(20000)          # wait for 20 seconds
+		print "wait 5 seconds"
+		self.waitMsec(5000)          # wait for 20 seconds
 		
 		# turn on whistle, set direction to reverse, set speed
-		self.throttle.setF3(True)     # turn on whistle
+		self.throttle.setF2(True)     # turn on whistle
 		self.waitMsec(1000)           # wait for 1 seconds
-		self.throttle.setF3(False)    # turn off whistle
+		self.throttle.setF2(False)    # turn off whistle
 		self.waitMsec(1000)           # wait for 1 second
 
 		print "Set Loco Reverse"
@@ -72,13 +72,13 @@ class Test14(jmri.jmrit.automat.AbstractAutomaton) :
 		
 		# delay for a time (remember loco could still be moving
 		# due to simulated or actual inertia). Time is in milliseconds
-		print "wait 20 seconds"
-		self.waitMsec(20000)          # wait for 20 seconds
+		print "wait 5 seconds"
+		self.waitMsec(5000)          # wait for 20 seconds
 		
 		# turn on whistle, set direction to forward, set speed
-		self.throttle.setF3(True)     # turn on whistle
+		self.throttle.setF2(True)     # turn on whistle
 		self.waitMsec(1000)           # wait for 1 seconds
-		self.throttle.setF3(False)    # turn off whistle
+		self.throttle.setF2(False)    # turn off whistle
 		self.waitMsec(1000)           # wait for 1 second
 
 		# and continue around again

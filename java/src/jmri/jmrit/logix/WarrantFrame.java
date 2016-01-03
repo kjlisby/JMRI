@@ -794,7 +794,9 @@ public class WarrantFrame extends WarrantRoute {
     }
 
     private void runTrain() {
+        log.debug("warrantFrame.runTrain - _throttleCommands="+_throttleCommands);
         String msg = checkTrainId();
+        if (_throttleCommands != null) log.debug("warrantFrame.runTrain - _throttleCommands.size()="+_throttleCommands.size());
         if (msg == null) {
             if (_throttleCommands == null || _throttleCommands.size() == 0) {
                 msg = Bundle.getMessage("NoCommands", _warrant.getDisplayName());
@@ -804,6 +806,7 @@ public class WarrantFrame extends WarrantRoute {
             JOptionPane.showMessageDialog(this, msg, Bundle.getMessage("WarningTitle"),
                     JOptionPane.WARNING_MESSAGE);
             setStatusText(msg, Color.black);
+            log.debug("warrantFrame.runTrain - blev sur msg="+msg);
             return;
         }
                _warrant.setTrainName(getTrainName());

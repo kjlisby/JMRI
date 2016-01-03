@@ -723,19 +723,25 @@ public class Warrant extends jmri.implementation.AbstractNamedBean
     protected String acquireThrottle(DccLocoAddress address) {
         String msg = null;
         if (address == null)  {
+            log.debug("acquireThrottle address=null");
             msg = Bundle.getMessage("NoAddress", getDisplayName());
             abortWarrant(msg);
             return msg;
         }
+        log.debug("acquireThrottle address="+address.getNumber());
         jmri.ThrottleManager tm = InstanceManager.throttleManagerInstance();
         if (tm==null) {
+            log.debug("acquireThrottle did not find a ThrottleManager");
             msg = Bundle.getMessage("noThrottle");
         } else {
+            log.debug("acquireThrottle found a ThrottleManager");
             if (!tm.requestThrottle(address.getNumber(), address.isLongAddress(),this)) {
+                log.debug("acquireThrottle - ThrottleManager will not provide a throttle");
                 msg = Bundle.getMessage("trainInUse", address.getNumber());
             }           
         }
         if (msg!=null) {
+            log.debug("acquireThrottle is not happy: "+msg);
             abortWarrant(msg);
             firePropertyChange("throttleFail", null, msg);          
             return msg;
@@ -821,13 +827,14 @@ public class Warrant extends jmri.implementation.AbstractNamedBean
     }
 
     public void notifyThrottleFound(DccThrottle throttle) {
+        log.debug("warrant.notifyThrottleFound throttle: "+throttle);
         if (throttle == null) {
             abortWarrant("notifyThrottleFound: null throttle(?)!");
             firePropertyChange("throttleFail", null, Bundle.getMessage("noThrottle"));
             return;
         }
         if (_debug) {
-            log.debug("notifyThrottleFound address= " + throttle.getLocoAddress().toString() + " _runMode= " + _runMode);
+            log.debug("warrant.notifyThrottleFound address= " + throttle.getLocoAddress().toString() + " _runMode= " + _runMode);
         }
 
         startupWarrant();
@@ -1059,7 +1066,9 @@ public class Warrant extends jmri.implementation.AbstractNamedBean
         OBlock startBlock = _orders.get(0).getBlock();
         for (BlockOrder bo : _orders) {
             OBlock block = bo.getBlock();
+            log.debug("checkRoute checking block "+block.getDisplayName());
             if ((block.getState() & OBlock.OCCUPIED) > 0 && !startBlock.equals(block)) {
+                log.debug("checkRoute - block "+block.getDisplayName()+"is occupied. Startblock=="+startBlock.getDisplayName());
                 msg = Bundle.getMessage("BlockRougeOccupied", block.getDisplayName());
                 _totalAllocated = false;
             }
@@ -1535,6 +1544,7 @@ public class Warrant extends jmri.implementation.AbstractNamedBean
         if (speedType==null) {
             speedType = _curSpeedType;
         }
+        log.debug("getMinSpeedType returning"+speedType);
         return speedType;
     }
 
@@ -1587,9 +1597,13 @@ public class Warrant extends jmri.implementation.AbstractNamedBean
                 availDist = 0.0f;
         }
         // speed type for entering current block
+        log.debug("Fetching permissiblespeed from blkOrder "+blkOrder.toString());
         String nextSpeedType = getPermissibleSpeedAt(blkOrder);
+        log.debug("CHECK DENNE STRENG: "+nextSpeedType);
         // look ahead to next block. Get slowest type compared to current type
         blkOrder = getBlockOrderAt(_idxCurrentOrder+1);
+        
+        log.debug("Comparing blkOrder "+blkOrder.toString()+" to nextSpeedType "+nextSpeedType);
         nextSpeedType = getMinSpeedType(blkOrder, nextSpeedType);
         
         if(_debug) log.debug("moveIntoNextBlock("+position+"): \""+curBlock.getDisplayName()+
@@ -1895,8 +1909,11 @@ public class Warrant extends jmri.implementation.AbstractNamedBean
      * @return a speed type or null for continue at current type
      */
     private String getPermissibleSpeedAt(BlockOrder bo) {
+        log.debug("getPermissibleSpeedAt bo = "+bo.toString());
         OBlock nextBlock = bo.getBlock();
+        log.debug("getPermissibleSpeedAt nextBlock = "+nextBlock.toString());
         String nextSpeed = bo.getPermissibleEntranceSpeed();
+        log.debug("getPermissibleSpeedAt nextSpeed = "+nextSpeed);
 //        String exitSpeed = bo.getPermissibleExitSpeed();
         if (nextSpeed!=null ) {
             if (nextSpeed.equals(Stop)) {
@@ -1905,6 +1922,7 @@ public class Warrant extends jmri.implementation.AbstractNamedBean
             }
         } else {    //  if signal is configured, ignore block
             nextSpeed = nextBlock.getBlockSpeed();
+            log.debug("getPermissibleSpeedAt nextSpeed(2) = "+nextSpeed);
             if (nextSpeed=="") {
                 nextSpeed = null;
             }                

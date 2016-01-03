@@ -402,19 +402,29 @@ public class Portal extends jmri.implementation.AbstractNamedBean {
         String blockName = block.getDisplayName();
         if (block.equals(_toBlock)) {
             if (_fromSignal != null) {
+                log.debug("getPermissibleEntranceSpeed("+blockName+") _fromSignal = "+_fromSignal.getDisplayName());
                 if (_fromSignal instanceof SignalHead) {
                     speed = getPermissibleSignalEntranceSpeed((SignalHead) _fromSignal);
+                    log.debug("getPermissibleEntranceSpeed("+blockName+") 1 returning "+speed);
                 } else {
                     speed = getPermissibleSignalEntranceSpeed((SignalMast) _fromSignal);
+                    log.debug("getPermissibleEntranceSpeed("+blockName+") 2 returning "+speed);
                 }
+            } else {
+                log.debug("getPermissibleEntranceSpeed("+blockName+") _fromSignal == null");
             }
         } else if (block.equals(_fromBlock)) {
             if (_toSignal != null) {
+                log.debug("getPermissibleEntranceSpeed("+blockName+") _toSignal = "+_toSignal.getDisplayName());
                 if (_toSignal instanceof SignalHead) {
                     speed = getPermissibleSignalEntranceSpeed((SignalHead) _toSignal);
+                    log.debug("getPermissibleEntranceSpeed("+blockName+") 3 returning "+speed);
                 } else {
                     speed = getPermissibleSignalEntranceSpeed((SignalMast) _toSignal);
+                    log.debug("getPermissibleEntranceSpeed("+blockName+") 4 returning "+speed);
                 }
+            } else {
+                log.debug("getPermissibleEntranceSpeed("+blockName+") _toSignal == null");
             }
         } else {
             log.error("Block \"" + blockName + "\" is not in Portal \"" + getUserName() + "\".");

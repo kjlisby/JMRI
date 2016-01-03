@@ -2,6 +2,7 @@
 package jmri.jmrix.loconet;
 
 import jmri.CommandStation;
+import jmri.managers.DefaultProgrammerManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -270,6 +271,7 @@ public class UhlenbrockSlotManager extends SlotManager implements LocoNetListene
             case 0x6B:
                 return progOnProgrammingTrackMessage(0x71, val, cvnum); // write on PT in DirectByteMode
             case 0x53:
+                //if (getMode().equals(DefaultProgrammerManager.REGISTERMODE)) return progOnProgrammingTrackMessage(0x63, val, cvnum); //Mis-use: Write in Motorola format
                 return progOnProgrammingTrackMessage(0x6D, val, cvnum); // write on PT in RegisterMode or AddressMode
 
             case 0x23:

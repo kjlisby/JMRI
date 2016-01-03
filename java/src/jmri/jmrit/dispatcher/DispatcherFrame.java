@@ -446,6 +446,7 @@ public class DispatcherFrame extends jmri.util.JmriJFrame {
 
     void releaseAllocatedSectionFromTable(int index) {
         AllocatedSection as = allocatedSections.get(index);
+        log.debug("A_A: calling releaseAllocatedSection from releaseAllocatedSectionFromTable");
         releaseAllocatedSection(as, false);
     }
 
@@ -523,12 +524,14 @@ public class DispatcherFrame extends jmri.util.JmriJFrame {
             optionsMenu.initializeMenu();
         }
         if (_AutoAllocate) {
+            log.debug("A_A: calling scanAllocationRequestList from handleAutoAllocateChanged");
             autoAllocate.scanAllocationRequestList(allocationRequests);
         }
     }
 
     protected void forceScanOfAllocation() {
         if (_AutoAllocate) {
+            log.debug("A_A: calling scanAllocationRequestList from forceScanOfAllocation");
             autoAllocate.scanAllocationRequestList(allocationRequests);
         }
     }
@@ -728,6 +731,7 @@ public class DispatcherFrame extends jmri.util.JmriJFrame {
         for (int k = allocatedSections.size(); k > 0; k--) {
             if (at == allocatedSections.get(k - 1).getActiveTrain()
                     && allocatedSections.get(k - 1).getSection() == s) {
+                log.debug("A_A: calling releaseAllocatedSection from removeFromActiveTrainPath");
                 releaseAllocatedSection(allocatedSections.get(k - 1), true);
             }
         }
@@ -1134,8 +1138,14 @@ public class DispatcherFrame extends jmri.util.JmriJFrame {
         }
         // remove any allocated sections
         for (int k = allocatedSections.size(); k > 0; k--) {
-            if (at == allocatedSections.get(k - 1).getActiveTrain()) {
-                releaseAllocatedSection(allocatedSections.get(k - 1), true);
+            try {
+                if (at == allocatedSections.get(k - 1).getActiveTrain()) {
+                    log.debug("A_A: calling releaseAllocatedSection from terminateActiveTrain");
+                    releaseAllocatedSection(allocatedSections.get(k - 1), true);
+                }
+            } catch (Exception e) {
+                log.warn("releaseAllocatedSection failed - maybe the AllocatedSection was removed due to a terminating train??",e.toString());
+                continue;
             }
         }
         // remove from restarting trains list, if present
@@ -1225,6 +1235,7 @@ public class DispatcherFrame extends jmri.util.JmriJFrame {
             ar = new AllocationRequest(section, seqNumber, direction, activeTrain);
             allocationRequests.add(ar);
             if (_AutoAllocate) {
+                log.debug("A_A: calling scanAllocationRequestList from requestAllocation");
                 autoAllocate.scanAllocationRequestList(allocationRequests);
             }
         }
@@ -1558,6 +1569,7 @@ public class DispatcherFrame extends jmri.util.JmriJFrame {
             }
             if (_AutoAllocate) {
                 requestNextAllocation(at);
+                log.debug("A_A: calling scanAllocationRequestList from allocateSection");
                 autoAllocate.scanAllocationRequestList(allocationRequests);
             }
 
@@ -1852,7 +1864,23 @@ public class DispatcherFrame extends jmri.util.JmriJFrame {
                                     }
                                 }
                                 if (foundOne) {
-                                    releaseAllocatedSection(as, false);
+                                    // have section to release - delay before release
+                                    try {
+                                        Thread.sleep(500);
+                                    } catch (InterruptedException e) {
+                                        // ignore this exception
+                                    }
+                                    // if section is still allocated, release it
+                                    foundOne = false;
+                                    for (int m = 0; m < allocatedSections.size(); m++) {
+                                        if ((allocatedSections.get(m) == as) && (as.getActiveTrain() == at)) {
+                                            foundOne = true;
+                                        }
+                                    }
+                                    if (foundOne) {
+                                        log.debug("A_A: calling releaseAllocatedSection from checkAutoRelease");
+                                        releaseAllocatedSection(as, false);
+                                    }
                                 }
                             }
                         }
@@ -1895,6 +1923,7 @@ public class DispatcherFrame extends jmri.util.JmriJFrame {
         allocationRequestTableModel.fireTableDataChanged();
         activeTrainsTableModel.fireTableDataChanged();
         if (_AutoAllocate) {
+            log.debug("A_A: calling scanAllocationRequestList from releaseAllocatedSection");
             autoAllocate.scanAllocationRequestList(allocationRequests);
         }
     }
@@ -1926,6 +1955,7 @@ public class DispatcherFrame extends jmri.util.JmriJFrame {
                         at.setStarted();
                         delayedTrains.remove(i);
                         if (_AutoAllocate) {
+                            log.debug("A_A: calling scanAllocationRequestList from newFastClockMinute 1");
                             autoAllocate.scanAllocationRequestList(allocationRequests);
                         }
                     }
@@ -1935,6 +1965,7 @@ public class DispatcherFrame extends jmri.util.JmriJFrame {
                     at.restart();
                     delayedTrains.remove(i);
                     if (_AutoAllocate) {
+                        log.debug("A_A: calling scanAllocationRequestList from newFastClockMinute 2");
                         autoAllocate.scanAllocationRequestList(allocationRequests);
                     }
                 }

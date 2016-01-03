@@ -46,6 +46,7 @@ public class AllocatedSection {
      * @param s cannot be null
      */
     public AllocatedSection(jmri.Section s, ActiveTrain at, int seq, jmri.Section next, int nextSeqNo) {
+        log.debug("ALLOCATING section "+s.getUserName()+" to train "+at.getActiveTrainName());
         mSection = s;
         mActiveTrain = at;
         mSequence = seq;
@@ -266,6 +267,7 @@ public class AllocatedSection {
             java.beans.PropertyChangeListener listener = null;
             jmri.Block b = mBlockList.get(i);
             if (b != null) {
+                log.debug("Adding listener for block "+b.getUserName());
                 final int index = i;  // block index
                 b.addPropertyChangeListener(listener = new java.beans.PropertyChangeListener() {
                     public void propertyChange(java.beans.PropertyChangeEvent e) {
@@ -284,15 +286,27 @@ public class AllocatedSection {
             }
             if (mBlockList != null) {
                 jmri.Block b = mBlockList.get(index);
-                if (!isInActiveBlockList(b)) {
-                    int occ = b.getState();
-                    Runnable handleBlockChange = new RespondToBlockStateChange(b, occ, this);
-                    Thread tBlockChange = new Thread(handleBlockChange, "Allocated Section Block Change on " + b.getDisplayName());
-                    tBlockChange.start();
-                    addToActiveBlockList(b);
-                    if (DispatcherFrame.instance().getSupportVSDecoder()) {
-                        firePropertyChangeEvent("BlockStateChange", null, b.getSystemName()); // NOI18N
+                // There once was created a sub-thread to handle block state changes in order to filter out bouncing sensors. 
+                // However, this mechanism complicated things and gave rise to race conditions (with trains stopping in the middle
+                // of nowhere and refusing to go further)) and to errors where block occupancy was not handled properly for very
+                // short blocks or other situation where a 250 ms delay in reacting to block occupancy events is less fortunate.
+                // If you have problems with bouncing sensors, then correct your hardware. If that is not possible, use the
+                // debounce timers in JMRI sensor.
+                if (mActiveTrain.getAutoActiveTrain() != null) {
+                    // automatically running train
+                    mActiveTrain.getAutoActiveTrain().handleBlockStateChange(this, b);
+                } else if (b.getState() == jmri.Block.OCCUPIED) {
+                    // manual running train - block newly occupied
+                    if ((b == mActiveTrain.getEndBlock()) && mActiveTrain.getReverseAtEnd()) {
+                        // reverse direction of Allocated Sections
+                        mActiveTrain.reverseAllAllocatedSections();
+                    } else if ((b == mActiveTrain.getStartBlock()) && mActiveTrain.getResetWhenDone()) {
+                        // reset the direction of Allocated Sections 
+                        mActiveTrain.resetAllAllocatedSections();
                     }
+                }
+                if (DispatcherFrame.instance().getSupportVSDecoder()) {
+                    firePropertyChangeEvent("BlockStateChange", null, b.getSystemName()); // NOI18N
                 }
             }
         }
@@ -321,35 +335,8 @@ public class AllocatedSection {
         return null;
     }
 
-    protected synchronized void addToActiveBlockList(jmri.Block b) {
-        if (b != null) {
-            mActiveBlockList.add(b);
-        }
-    }
-
-    protected synchronized void removeFromActiveBlockList(jmri.Block b) {
-        if (b != null) {
-            for (int i = 0; i < mActiveBlockList.size(); i++) {
-                if (b == mActiveBlockList.get(i)) {
-                    mActiveBlockList.remove(i);
-                    return;
-                }
-            }
-        }
-    }
-
-    protected synchronized boolean isInActiveBlockList(jmri.Block b) {
-        if (b != null) {
-            for (int i = 0; i < mActiveBlockList.size(); i++) {
-                if (b == mActiveBlockList.get(i)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
     public synchronized void dispose() {
+        log.debug("DEALLOCATING section "+mSection.getUserName()+" for train "+mActiveTrain.getActiveTrainName());
         if ((mSectionListener != null) && (mSection != null)) {
             mSection.removePropertyChangeListener(mSectionListener);
         }
@@ -358,48 +345,6 @@ public class AllocatedSection {
             jmri.Block b = mBlockList.get(i - 1);
             b.removePropertyChangeListener(mBlockListeners.get(i - 1));
         }
-    }
-
-// _________________________________________________________________________________________
-    // This class responds to Block state change in a separate thread
-    class RespondToBlockStateChange implements Runnable {
-
-        public RespondToBlockStateChange(jmri.Block b, int occ, AllocatedSection as) {
-            _block = b;
-            _aSection = as;
-            _occ = occ;
-        }
-
-        public void run() {
-            // delay to insure that change is not a short spike
-            try {
-                Thread.sleep(_delay);
-            } catch (InterruptedException exc) {
-                // ignore this exception
-            }
-            if (_occ == _block.getState()) {
-                // occupancy has not changed, must be OK
-                if (mActiveTrain.getAutoActiveTrain() != null) {
-                    // automatically running train
-                    mActiveTrain.getAutoActiveTrain().handleBlockStateChange(_aSection, _block);
-                } else if (_occ == jmri.Block.OCCUPIED) {
-                    // manual running train - block newly occupied
-                    if ((_block == mActiveTrain.getEndBlock()) && mActiveTrain.getReverseAtEnd()) {
-                        // reverse direction of Allocated Sections
-                        mActiveTrain.reverseAllAllocatedSections();
-                    } else if ((_block == mActiveTrain.getStartBlock()) && mActiveTrain.getResetWhenDone()) {
-                        // reset the direction of Allocated Sections 
-                        mActiveTrain.resetAllAllocatedSections();
-                    }
-                }
-            }
-            // remove from lists
-            removeFromActiveBlockList(_block);
-        }
-        private int _delay = 250;
-        private jmri.Block _block = null;
-        private int _occ = 0;
-        private AllocatedSection _aSection = null;
     }
 
     public void addPropertyChangeListener(PropertyChangeListener listener) {

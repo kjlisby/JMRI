@@ -650,6 +650,7 @@ public class ActiveTrain {
             }
         }
         for (AllocatedSection as : sectionsToRelease) {
+            log.debug("A_A: calling releaseAllocatedSection from allocateAFresh");
             DispatcherFrame.instance().releaseAllocatedSection(as, true); // need to find Allocated Section
             as.getSection().setState(jmri.Section.FREE);
         }

@@ -192,14 +192,17 @@ abstract public class AbstractThrottleManager implements ThrottleManager {
      */
     public boolean requestThrottle(DccLocoAddress la, BasicRosterEntry re, ThrottleListener l) {
         boolean throttleFree = true;
+        log.debug("AbstractThrottleManager.requestThrottle for "+la.getNumber());
 
         // check for a valid throttle address
         if (!canBeLongAddress(la.getNumber()) && !canBeShortAddress(la.getNumber())) {
+            log.debug("AbstractThrottleManager.requestThrottle: wrong number");
             return false;
         }
 
         // put the list in if not present
         if (!throttleListeners.containsKey(la)) {
+            log.debug("AbstractThrottleManager.requestThrottle: creating an empty entry in throttleListeners for key "+la.getNumber());
             throttleListeners.put(la, new ArrayList<WaitingThrottle>());
         }
         // get the corresponding list to check length
@@ -386,6 +389,7 @@ abstract public class AbstractThrottleManager implements ThrottleManager {
         if (a == null) {
             log.debug("notifyThrottleKnown with zero-length listeners: " + addr);
         } else {
+            log.debug("notifyThrottleKnown with "+a.size()+" listeners: " + addr);
             for (int i = 0; i < a.size(); i++) {
                 ThrottleListener l = a.get(i).getListener();
                 log.debug("Notify listener");

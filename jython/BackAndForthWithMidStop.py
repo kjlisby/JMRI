@@ -29,7 +29,7 @@ class FireValleyTest(jmri.jmrit.automat.AbstractAutomaton) :
 		self.revstnSensor = sensors.provideSensor("LS6")
 
 		# get loco address. For long address change "False" to "True" 
-		self.throttle = self.getThrottle(11, False)  # short address 11
+		self.throttle = self.getThrottle(16, False)  # short address 11
 
 		return
 

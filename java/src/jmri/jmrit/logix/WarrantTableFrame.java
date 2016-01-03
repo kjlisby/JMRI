@@ -380,29 +380,37 @@ public class WarrantTableFrame extends jmri.util.JmriJFrame implements MouseList
      */
     public String runTrain(Warrant w) {
         String msg = null;
+        log.debug("WarrantTableFrame.runTrain "+w.getDisplayName());
         if (w.getRunMode() != Warrant.MODE_NONE) {
             msg = w.getRunModeMessage();
-            setStatusText(msg, Color.red, false);                               
+            setStatusText(msg, Color.red, false); 
+            log.debug("WarrantTableFrame.runTrain "+w.getDisplayName()+" train already running "+msg);                              
             return msg;
         }
         msg = w.setRoute(0, null);
         setStatusText(msg, WarrantTableModel.myGold, false);                                
         if (msg!=null) {
-            setStatusText(msg, Color.red, false);                               
+            setStatusText(msg, Color.red, false);     
+            log.debug("WarrantTableFrame.runTrain "+w.getDisplayName()+" setRoute failed "+msg);                          
             return msg;
         }    
+        log.debug("WarrantTableFrame.runTrain "+w.getDisplayName()+" setRoute success");
         msg = w.setRunMode(Warrant.MODE_RUN, null, null, null, w.getRunBlind());
         if (msg!=null) {
-            setStatusText(msg, Color.red, false);                               
+            setStatusText(msg, Color.red, false);
+            log.debug("WarrantTableFrame.runTrain "+w.getDisplayName()+" setRunMode failed "+msg);
             return msg;
         }
+        log.debug("WarrantTableFrame.runTrain "+w.getDisplayName()+" setRunMode success");
         msg = w.checkStartBlock(Warrant.MODE_RUN);  // notify first block occupied by this train
-        setStatusText(msg, WarrantTableModel.myGold, false);                                
+        setStatusText(msg, WarrantTableModel.myGold, false);
+        log.debug("WarrantTableFrame.runTrain "+w.getDisplayName()+" checkStartBlock result: "+msg);
         // From here on messages are status information, not abort info
         msg = w.checkRoute();   // notify about occupation ahead
         if (msg!=null) {
             setStatusText(msg, WarrantTableModel.myGreen, false);                               
         }
+        log.debug("WarrantTableFrame.runTrain "+w.getDisplayName()+" checkRoute result: "+msg);
         return null;
     }
 

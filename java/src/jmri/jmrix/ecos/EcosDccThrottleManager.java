@@ -51,6 +51,11 @@ public class EcosDccThrottleManager extends AbstractThrottleManager implements E
     public boolean hasDispatchFunction() {
         return false;
     }
+    
+  //  protected boolean singleUse() {
+  //      // The ECOS can be set up to allow many users for the same throttle
+  //      return false;
+  //  }
 
     /**
      * Address 100 and above is a long address

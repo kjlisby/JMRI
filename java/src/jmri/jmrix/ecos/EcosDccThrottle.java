@@ -953,6 +953,7 @@ public class EcosDccThrottle extends AbstractThrottle implements EcosListener {
         objEcosLoco.setProtocol(protocol(address.getProtocol()));
         String message = "create(10, addr[" + objEcosLoco.getNumber() + "], name[\"Created By JMRI\"], protocol[" + objEcosLoco.getECOSProtocol() + "], append)";
         EcosMessage m = new EcosMessage(message);
+        log.debug("createEcosLoco m="+m);
         tc.sendEcosMessage(m, this);
     }
 

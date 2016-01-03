@@ -145,10 +145,11 @@ public class BlockOrder {
     protected String getPermissibleEntranceSpeed() {
         Portal portal = _block.getPortalByName(getEntryName());
         if (portal != null) {
+            log.debug("getPermissibleEntranceSpeed() relying on portal "+portal.toString());
             return portal.getPermissibleEntranceSpeed(_block);
         }
         // OK if this is first block
-        //log.warn("getPermissibleEntranceSpeed, no entry portal! "+this.toString());
+        log.debug("getPermissibleEntranceSpeed, no entry portal! "+this.toString());
         return null;
     }
 

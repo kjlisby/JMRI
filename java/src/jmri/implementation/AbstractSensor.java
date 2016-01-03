@@ -170,6 +170,11 @@ public abstract class AbstractSensor extends AbstractNamedBean implements Sensor
      */
     public void setOwnState(int s) {
         if (_rawState != s) {
+            if (s == ACTIVE) {
+                log.info("sensor " + getDisplayName() + " going ACTIVE (raw state)");
+            } else {
+                log.info("sensor " + getDisplayName() + " going INACTIVE (raw state)");
+            }
             if (((s == ACTIVE) && (sensorDebounceGoingActive > 0))
                     || ((s == INACTIVE) && (sensorDebounceGoingInActive > 0))) {
 

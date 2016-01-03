@@ -274,9 +274,11 @@ public class AutoActiveTrain implements ThrottleListener {
         if (_resumingAutomatic) {
             _resumingAutomatic = false;
             _activeTrain.setStatus(ActiveTrain.RUNNING);
+            log.debug("Train resuming (if signal permits): "+_activeTrain.getTrainName());
             setEngineDirection();
             setSpeedBySignal();
         } else if (DispatcherFrame.instance().getAutoAllocate()) {
+            log.debug("Train starting (if signal permits): "+_activeTrain.getTrainName());
             // starting for the first time with automatic allocation of Sections
             setSpeedBySignal();
         }
@@ -359,7 +361,7 @@ public class AutoActiveTrain implements ThrottleListener {
     protected void handleSectionOccupancyChange(AllocatedSection as) {
         if (!isInAllocatedList(as)) {
             if (log.isDebugEnabled()) {
-                log.debug("Unexpected occupancy change notification - Section " + as.getSection().getSystemName());
+                log.debug(_activeTrain.getTrainName() + " Unexpected occupancy change notification - Section " + as.getSection().getSystemName());
             }
             return;
         }
@@ -380,11 +382,47 @@ public class AutoActiveTrain implements ThrottleListener {
             justification = "OK to not sync here, no conflict expected")
     protected void handleBlockStateChange(AllocatedSection as, Block b) {
         if (b.getState() == Block.OCCUPIED) {
+            if (log.isDebugEnabled()) {
+                log.debug(_activeTrain.getTrainName() + " Reached handleBlockStateChange to OCCUPIED - Section " + as.getSection().getSystemName()
+                        + ", Block - " + b.getUserName() + ", speed = " + _targetSpeed);
+                if (_previousBlock == null) {
+                    log.debug(_activeTrain.getTrainName() + " _previousBlock is null");
+                } else {
+                    log.debug(_activeTrain.getTrainName() + " _previousBlock = " + _previousBlock.getUserName());
+                }
+                if (_currentBlock == null) {
+                    log.debug(_activeTrain.getTrainName() + " _currentBlock is null");
+                } else {
+                    log.debug(_activeTrain.getTrainName() + " _currentBlock = " + _currentBlock.getUserName());
+                }
+                if (_nextBlock == null) {
+                    log.debug(_activeTrain.getTrainName() + " _nextBlock is null");
+                } else {
+                    log.debug(_activeTrain.getTrainName() + " _nextBlock = " + _nextBlock.getUserName());
+                }
+            }
              // Block changed to OCCUPIED - train has entered this block
+            if (b == getNextBlock(_nextBlock, as)) {
+                // This should not happen, but occasionally even the best sensor system might have skipped an OCCUPIED message
+                log.warn(_activeTrain.getTrainName() + " WHOOPS!!! WE MISSED BLOCK "+_nextBlock.getDisplayName());
+                _previousBlock = _currentBlock;
+                _currentBlock = _nextBlock;
+                _nextBlock = getNextBlock(_nextBlock, as);
+                if (_nextBlock == null) {
+                    log.debug("NBAD: 1 _nextBlock assigned as null");
+                } else {
+                    log.debug("NBAD: 1 _nextBlock assigned as "+_nextBlock.getDisplayName());
+                }
+            }
             if (b == _nextBlock) {
                 _previousBlock = _currentBlock;
                 _currentBlock = _nextBlock;
                 _nextBlock = getNextBlock(b, as);
+                if (_nextBlock == null) {
+                    log.debug("NBAD: 2 _nextBlock assigned as null");
+                } else {
+                    log.debug("NBAD: 2 _nextBlock assigned as "+_nextBlock.getDisplayName());
+                }
                 if (_nextBlock != null) {
                     if ((_currentBlock == _activeTrain.getEndBlock()) && _activeTrain.getReverseAtEnd()
                             && (as.getSequence() == _activeTrain.getEndBlockSectionSequenceNumber())) {
@@ -408,24 +446,24 @@ public class AutoActiveTrain implements ThrottleListener {
                     // reached last block in this transit
                     removeCurrentSignal();
                     if (log.isDebugEnabled()) {
-                        log.debug("block occupied stop in Current Section, Block - " + b.getUserName());
+                        log.debug(_activeTrain.getTrainName() + " block occupied stop in Current Section, Block - " + b.getUserName());
                     }
                     stopInCurrentSection(NO_TASK);
                 }
             } else if (b != _currentBlock) {
                 if (log.isDebugEnabled()) {
-                    log.debug("block going occupied - " + b.getUserName() + " - is not _nextBlock or _currentBlock - ignored.");
+                    log.debug(_activeTrain.getTrainName() + " block going occupied - " + b.getUserName() + " - is not _nextBlock or _currentBlock - ignored.");
                 }
                 return;
             }
         } else if (b.getState() == Block.UNOCCUPIED) {
             if (log.isDebugEnabled()) {
-                log.debug("Reached handleBlockStateChange to UNOCCUPIED - Section " + as.getSection().getSystemName()
+                log.debug(_activeTrain.getTrainName() + " Reached handleBlockStateChange to UNOCCUPIED - Section " + as.getSection().getSystemName()
                         + ", Block - " + b.getUserName() + ", speed = " + _targetSpeed);
             }
             if (_stoppingByBlockOccupancy && (b == _stoppingBlock)) {
                 if (log.isDebugEnabled()) {
-                    log.debug("setStopNow from Block unoccupied, Block = " + b.getSystemName());
+                    log.debug(_activeTrain.getTrainName() + " setStopNow from Block unoccupied, Block = " + b.getSystemName());
                 }
                 _stoppingByBlockOccupancy = false;
                 _stoppingBlock = null;
@@ -484,13 +522,23 @@ public class AutoActiveTrain implements ThrottleListener {
                 // starting Block is in this allocated section - find next Block
                 setNewCurrentSection(as);
                 _nextBlock = getNextBlock(_currentBlock, as);
+                if (_nextBlock == null) {
+                    log.debug("NBAD: 3 _nextBlock assigned as null");
+                } else {
+                    log.debug("NBAD: 3 _nextBlock assigned as "+_nextBlock.getDisplayName());
+                }
             } else if (as.getSection().connectsToBlock(_currentBlock)) {
                 // starting Block is connected to a Block in this allocated section
                 EntryPoint ep = as.getSection().getEntryPointFromBlock(_currentBlock, as.getDirection());
                 if (ep != null) {
                     _nextBlock = ep.getBlock();
+                    if (_nextBlock == null) {
+                        log.debug("NBAD: 4 _nextBlock assigned as null");
+                    } else {
+                        log.debug("NBAD: 4 _nextBlock assigned as "+_nextBlock.getDisplayName());
+                    }
                 } else {
-                    log.error("failure to get entry point to Transit from Block " + _currentBlock.getSystemName());
+                    log.error(_activeTrain.getTrainName() + " failure to get entry point to Transit from Block " + _currentBlock.getSystemName());
                 }
             }
             if (_nextBlock != null) {
@@ -527,7 +575,7 @@ public class AutoActiveTrain implements ThrottleListener {
         if (index >= 0) {
             _allocatedSectionList.remove(index);
         } else {
-            log.warn("unexpected call to removeAllocatedSection - Section " + as.getSection().getSystemName());
+            log.warn(_activeTrain.getTrainName() + " unexpected call to removeAllocatedSection - Section " + as.getSection().getSystemName());
         }
     }
 
@@ -587,12 +635,12 @@ public class AutoActiveTrain implements ThrottleListener {
                     }
                 });
                 if (log.isDebugEnabled()) {
-                    log.debug("new current signal = " + sh.getSystemName());
+                    log.debug(_activeTrain.getTrainName() + " new current signal = " + sh.getSystemName());
                 }
                 setSpeedBySignal();
             } // Note: null signal head will result when exiting throat-to-throat blocks.
             else if (log.isDebugEnabled()) {
-                log.debug("new current signal is null - sometimes OK");
+                log.debug(_activeTrain.getTrainName() + " new current signal is null - sometimes OK");
             }
         } else {
             //SignalMast
@@ -619,12 +667,12 @@ public class AutoActiveTrain implements ThrottleListener {
                     }
                 });
                 if (log.isDebugEnabled()) {
-                    log.debug("new current signalmast = " + sm.getDisplayName() + " for " + _activeTrain.getTrainName());
+                    log.debug(_activeTrain.getTrainName() + " new current signalmast 2 = " + sm.getDisplayName() + " for " + _activeTrain.getTrainName());
                 }
                 setSpeedBySignal();
             } // Note: null signal head will result when exiting throat-to-throat blocks.
             else if (log.isDebugEnabled()) {
-                log.debug("new current signalmast is null - sometimes OK");
+                log.debug(_activeTrain.getTrainName()+" - new current signalmast is null 2 - sometimes OK");
             }
         }
     }
@@ -677,6 +725,30 @@ public class AutoActiveTrain implements ThrottleListener {
 
     // called by above or when resuming after stopped action
     protected synchronized void setSpeedBySignal() {
+        if (_previousAllocatedSection == null) {
+            log.debug("setSpeedBySignal ("+_activeTrain.getTrainName()+") - _previousAllocatedSection is null");
+        } else {
+            log.debug("setSpeedBySignal - _previousAllocatedSection = "+_previousAllocatedSection.getSectionName());
+        }
+        if (_currentAllocatedSection == null) {
+            log.debug("setSpeedBySignal ("+_activeTrain.getTrainName()+") - _currentAllocatedSection is null");
+        } else {
+            log.debug("setSpeedBySignal - _currentAllocatedSection = "+_currentAllocatedSection.getSectionName());
+        }
+        if (_nextSection == null) {
+            log.debug("setSpeedBySignal ("+_activeTrain.getTrainName()+") - _nextSection is null");
+        } else {
+            log.debug("setSpeedBySignal - _nextSection = "+_nextSection.getUserName()+" allocated: "+isSectionInAllocatedList(_nextSection));
+        }
+        if (_nextSection != null) {
+            // We are not at the end of the road, so make sure that the next section is allocated before proceeding
+            if (!isSectionInAllocatedList(_nextSection)) {
+                log.debug(_activeTrain.getTrainName() + " Next section ("+_nextSection.getUserName()+") is not allocated so Stop!");
+                stopInCurrentSection(NO_TASK);
+                _stoppingForStopSignal = true;
+                return;
+            }
+        }
         if (_pausingActive || ((_activeTrain.getStatus() != ActiveTrain.RUNNING)
                 && (_activeTrain.getStatus() != ActiveTrain.WAITING)) || ((_controllingSignal == null) 
                 && DispatcherFrame.instance().getSignalType() == DispatcherFrame.SIGNALHEAD)
@@ -703,16 +775,19 @@ public class AutoActiveTrain implements ThrottleListener {
                     break;
                 case SignalHead.YELLOW:
                 case SignalHead.FLASHYELLOW:
+                    log.debug(_activeTrain.getTrainName() + " Yellow signal - Speed set to SLOW_SPEED");
                     setSpeed(SLOW_SPEED);
                     _activeTrain.setStatus(ActiveTrain.RUNNING);
                     break;
                 case SignalHead.GREEN:
                 case SignalHead.FLASHGREEN:
+                    log.debug(_activeTrain.getTrainName() + " Green signal - Speed set to NORMAL_SPEED");
                     setSpeed(NORMAL_SPEED);
                     _activeTrain.setStatus(ActiveTrain.RUNNING);
                     break;
                 case SignalHead.LUNAR:
                 case SignalHead.FLASHLUNAR:
+                    log.debug(_activeTrain.getTrainName() + " LUNAR signal - Speed set to RESTRICTED_SPEED");
                     setSpeed(RESTRICTED_SPEED);
                     _activeTrain.setStatus(ActiveTrain.RUNNING);
                     break;
@@ -722,12 +797,17 @@ public class AutoActiveTrain implements ThrottleListener {
             String displayedAspect = _controllingSignalMast.getAspect();
             if (log.isDebugEnabled()) {
                 log.debug("Controlling Mast for train " + _activeTrain.getTrainName() + " " + _controllingSignalMast.getDisplayName() + " " + displayedAspect);
+                if (_conSignalProtectedBlock == null) {
+                    log.debug(_activeTrain.getTrainName() + " Protected block is null");
+                } else {
+                    log.debug(_activeTrain.getTrainName() + " Protected block: " + _conSignalProtectedBlock.getSensor().getDisplayName() + " state: " + _conSignalProtectedBlock.getSensor().getState());
+                }
             }
             if ((_controllingSignalMast.getAppearanceMap().getSpecificAppearance(jmri.SignalAppearanceMap.DANGER).equals(displayedAspect))
                     || !_controllingSignalMast.getLit() || _controllingSignalMast.getHeld()) {
                 if (_conSignalProtectedBlock.getSensor().getState() == Block.OCCUPIED) {
                     // Train has just passed this signal - ignore this signal
-                    log.debug("_conSignalProtectedBlock is the block just past so ignore" + _conSignalProtectedBlock.getDisplayName());
+                    log.debug(_activeTrain.getTrainName() + " _conSignalProtectedBlock is the block just past so ignore" + _conSignalProtectedBlock.getDisplayName());
                 } else {
                     log.debug(_activeTrain.getTrainName() + " Signal at Held or Danager so Stop");
                     stopInCurrentSection(NO_TASK);
@@ -735,6 +815,7 @@ public class AutoActiveTrain implements ThrottleListener {
                 }
             } else if (_controllingSignalMast.getAppearanceMap().getSpecificAppearance(jmri.SignalAppearanceMap.PERMISSIVE) != null
                     && _controllingSignalMast.getAppearanceMap().getSpecificAppearance(jmri.SignalAppearanceMap.PERMISSIVE).equals(displayedAspect)) {
+                log.debug(_activeTrain.getTrainName() + " Signal at Permissive so go by restricted speed");
                 setSpeed(RESTRICTED_SPEED);
                 _activeTrain.setStatus(ActiveTrain.RUNNING);
             } else {
@@ -750,7 +831,7 @@ public class AutoActiveTrain implements ThrottleListener {
                             speed = jmri.implementation.SignalSpeedMap.getMap().getSpeed(strSpeed);
                         } catch (Exception ex) {
                             //Considered Normal if the speed does not appear in the map
-                            log.debug("Speed not found" + strSpeed);
+                            log.debug(_activeTrain.getTrainName() + " Speed not found" + strSpeed);
                         }
                     }
                 }
@@ -776,15 +857,17 @@ public class AutoActiveTrain implements ThrottleListener {
                      whether that is to slow down or come to a complete stand still.
                      */
                     if (speedState < previousSpeedSet) {
+                        log.debug(_activeTrain.getTrainName() + " Speed set to speedState "+speedState);
                         setSpeed(speedState);
                     } else {
+                        log.debug(_activeTrain.getTrainName() + " Speed set to previousSpeedSet "+previousSpeedSet);
                         setSpeed(previousSpeedSet);
                     }
                     previousSpeedSet = speedState;
                     _activeTrain.setStatus(ActiveTrain.RUNNING);
 
                 } else {
-                    log.warn("No specific speeds found so will use the default");
+                    log.warn(_activeTrain.getTrainName() + " No specific speeds found so will use the default");
                     setSpeed(NORMAL_SPEED);
                     _activeTrain.setStatus(ActiveTrain.RUNNING);
                 }
@@ -816,7 +899,7 @@ public class AutoActiveTrain implements ThrottleListener {
 
     private synchronized void stopInCurrentSection(int task) {
         if (_currentAllocatedSection == null) {
-            log.error("Current allocated section null on entry to stopInCurrentSection");
+            log.error(_activeTrain.getTrainName() + " Current allocated section null on entry to stopInCurrentSection");
             setStopNow();
             return;
         }
@@ -839,6 +922,7 @@ public class AutoActiveTrain implements ThrottleListener {
                     _stoppingUsingSpeedProfile = true;
                 } else {
                     // sensor is not active
+                    log.debug(_activeTrain.getTrainName() + " stopInCurrentSection Speed set to RESTRICTED_SPEED");
                     setSpeed(RESTRICTED_SPEED);
                 }
                 _stopSensor.addPropertyChangeListener(_stopSensorListener
@@ -853,6 +937,7 @@ public class AutoActiveTrain implements ThrottleListener {
             }
         } else if (_currentAllocatedSection.getLength() < _maxTrainLength) {
             // train will not fit comfortably in the Section, stop it immediately
+            log.debug(_activeTrain.getTrainName() + " stopInCurrentSection STOP NOW");
             setStopNow();
         } else if (_resistanceWheels) {
             // train will fit in current allocated Section and has resistance wheels
@@ -863,6 +948,7 @@ public class AutoActiveTrain implements ThrottleListener {
                     _stoppingBlock = tBlock;
                     setStopByBlockOccupancy();
                 } else {
+                    log.debug(_activeTrain.getTrainName() + " stopInCurrentSection STOP NOW 2");
                     setStopNow();
                 }
             } else {
@@ -890,10 +976,12 @@ public class AutoActiveTrain implements ThrottleListener {
                         _stoppingBlock = _previousBlock;
                         setStopByBlockOccupancy();
                     } else {
+                        log.debug(_activeTrain.getTrainName() + " stopInCurrentSection STOP NOW 3");
                         setStopNow();
                     }
                 } else if (enterBlock == null) {
                     // this is the first Section of the Transit, with train starting in this Section
+                    log.debug(_activeTrain.getTrainName() + " stopInCurrentSection STOP NOW 4");
                     setStopNow();
                 } else if (exitBlock == enterBlock) {
                     // entry and exit are from the same Block
@@ -902,6 +990,7 @@ public class AutoActiveTrain implements ThrottleListener {
                         _stoppingBlock = _previousBlock;
                         setStopByBlockOccupancy();
                     } else {
+                        log.debug(_activeTrain.getTrainName() + " stopInCurrentSection STOP NOW 5");
                         setStopNow();
                     }
                 } else {
@@ -919,6 +1008,7 @@ public class AutoActiveTrain implements ThrottleListener {
                         tstLength += getBlockLength(tstBlock);
                     }
                     if (tstLength < _maxTrainLength) {
+                        log.debug(_activeTrain.getTrainName() + " stopInCurrentSection STOP NOW 6");
                         setStopNow();
                     } else if (tstBlock == enterBlock) {
                         // train fits, but needs all available Blocks
@@ -926,6 +1016,7 @@ public class AutoActiveTrain implements ThrottleListener {
                             _stoppingBlock = _previousBlock;
                             setStopByBlockOccupancy();
                         } else {
+                            log.debug(_activeTrain.getTrainName() + " stopInCurrentSection STOP NOW 7");
                             setStopNow();
                         }
                     } else {
@@ -942,6 +1033,7 @@ public class AutoActiveTrain implements ThrottleListener {
             }
         } else {
             // train will fit, but no way to stop it reliably
+            log.debug(_activeTrain.getTrainName() + " stopInCurrentSection STOP NOW 8");
             setStopNow();
         }
         if (task > NO_TASK) {
@@ -996,7 +1088,7 @@ public class AutoActiveTrain implements ThrottleListener {
                 }
                 break;
             default:
-                log.error("Request to execute unknown stop train task - " + task);
+                log.error(_activeTrain.getTrainName() + " Request to execute unknown stop train task - " + task);
                 break;
         }
     }
@@ -1017,6 +1109,7 @@ public class AutoActiveTrain implements ThrottleListener {
     }
 
     private synchronized void setStopNow() {
+        log.debug(_activeTrain.getTrainName() + " setStopNow");
         setSpeed(STOP_SPEED);
         if (_currentAllocatedSection == null) {  // this may occur if the train is not in the selected block when initially created and the signal is held.
             _activeTrain.setStatus(ActiveTrain.WAITING);
@@ -1032,10 +1125,12 @@ public class AutoActiveTrain implements ThrottleListener {
     private void setStopByBlockOccupancy() {
         // note: _stoppingBlock must be set before invoking this method
         _stoppingByBlockOccupancy = true;
+        log.debug(_activeTrain.getTrainName() + " setStopByBlockOccupancy setting RESTRICTED_SPEED");
         setSpeed(RESTRICTED_SPEED);
     }
 
     private synchronized void setSpeed(int aspect) {
+        log.debug(_activeTrain.getTrainName() + " setSpeed aspect="+aspect);
         _autoEngineer.slowToStop(false);
         if (aspect > STOP_SPEED) {
             float speed = _speedRatio[aspect];
@@ -1119,7 +1214,7 @@ public class AutoActiveTrain implements ThrottleListener {
             if (initialize()) {
                 _resumingAutomatic = true;
             } else {
-                log.error("Failed to initialize throttle when resuming automatic mode.");
+                log.error(_activeTrain.getTrainName() + " Failed to initialize throttle when resuming automatic mode.");
             }
         }
     }
@@ -1231,7 +1326,7 @@ public class AutoActiveTrain implements ThrottleListener {
                         waitNow = false;
                     }
                 } catch (InterruptedException e) {
-                    log.error("InterruptedException while watiting to stop for pause - " + e);
+                    log.error(_activeTrain.getTrainName() + " InterruptedException while watiting to stop for pause - " + e);
                     waitNow = false;
                     keepGoing = false;
                 }
@@ -1256,7 +1351,7 @@ public class AutoActiveTrain implements ThrottleListener {
                             waitNow = false;
                         }
                     } catch (InterruptedException e) {
-                        log.error("InterruptedException while waiting when paused - " + e);
+                        log.error(_activeTrain.getTrainName() + " InterruptedException while waiting when paused - " + e);
                         keepGoing = false;
                     }
                 }

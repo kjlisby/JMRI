@@ -45,6 +45,7 @@ public class Engineer extends Thread implements Runnable, java.beans.PropertyCha
     boolean _debug;
 
     Engineer(Warrant warrant, DccThrottle throttle) {
+        log.debug("Creating Engineer for warrant "+warrant.getUserName());
         _warrant = warrant;
         _idxCurrentCommand = 0;
         _throttle = throttle;
@@ -63,7 +64,7 @@ public class Engineer extends Thread implements Runnable, java.beans.PropertyCha
     @Override
     public void run() {
         _debug = log.isDebugEnabled();
-        if (_debug) log.debug("Engineer started warrant "+_warrant.getDisplayName());
+        if (_debug) log.debug("Engineer started warrant "+_warrant.getDisplayName()+"  _idxCurrentCommand="+_idxCurrentCommand);
 
         int cmdBlockIdx = 0;
         float timeRatio = 1.0f;     // ratio to extend scripted time when speed is modified
@@ -76,9 +77,10 @@ public class Engineer extends Thread implements Runnable, java.beans.PropertyCha
             }
             _runOnET = _setRunOnET;     // OK to set here
             long time = (long)(ts.getTime()*timeRatio);
-//            if (_debug) log.debug("Start Cmd #"+(_idxCurrentCommand)+" for block \""+ts.getBlockName()+
-//                  "\" currently in \""+_warrant.getBlockAt(cmdBlockIdx).getDisplayName()+"\". Warrant "+_warrant.getDisplayName());
+            if (_debug) log.debug("Start Cmd #"+(_idxCurrentCommand)+" for block \""+ts.getBlockName()+
+                  "\" currently in \""+_warrant.getBlockAt(cmdBlockIdx).getDisplayName()+"\". Warrant "+_warrant.getDisplayName());
             if (cmdBlockIdx < _warrant.getCurrentOrderIndex()) {
+                log.debug("Train advancing too fast, need to process commands more quickly");
                 // Train advancing too fast, need to process commands more quickly,
                 // allowing half second for whistle toots etc.
                 time = Math.min(time, 500);
@@ -192,6 +194,7 @@ public class Engineer extends Thread implements Runnable, java.beans.PropertyCha
         return _idxCurrentCommand;
     }
     protected void setCurrentCommandIndex(int idx) {
+        log.debug("Engineer going to Cmd #"+idx);
         _idxCurrentCommand = idx;
     }
 
@@ -707,6 +710,7 @@ public class Engineer extends Thread implements Runnable, java.beans.PropertyCha
     }
     
     protected String minSpeedType(String speed1, String speed2) {
+        log.debug("minSpeedType is comparing "+speed1+" to "+speed2);
         if (secondGreaterThanFirst(speed1, speed2)) {
             return speed1;
         }
@@ -714,6 +718,7 @@ public class Engineer extends Thread implements Runnable, java.beans.PropertyCha
     }
     // return a boolean so minSpeedType() can return a non-null String if possible
     protected boolean secondGreaterThanFirst(String speed1, String speed2) {
+        log.debug("secondGreaterThanFirst comparing "+speed1+" to "+speed2);
         if (speed1==null) {
             return false;
         }

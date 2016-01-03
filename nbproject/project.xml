@@ -44,7 +44,7 @@
                 </action>
                 <action name="run">
                     <script>${ant.script}</script>
-                    <target>decoderpro</target>
+                    <target>panelpro</target>
                 </action>
                 <action name="profile">
                     <script>${ant.script}</script>
@@ -120,13 +120,13 @@
                 <type>folder</type>
                 <location>java/classes</location>
                 <script>${ant.script}</script>
-                <build-target>debug</build-target>
+                <build-target>panelpro</build-target>
             </export>
             <export>
                 <type>folder</type>
                 <location>java/classes</location>
                 <script>${ant.script}</script>
-                <build-target>debug</build-target>
+                <build-target>panelpro</build-target>
             </export>
             <view>
                 <items>
@@ -148,12 +148,12 @@
                 </items>
                 <context-menu>
                     <ide-action name="build"/>
+                    <ide-action name="rebuild"/>
                     <ide-action name="clean"/>
                     <ide-action name="javadoc"/>
                     <ide-action name="run"/>
-                    <ide-action name="profile"/>
                     <ide-action name="test"/>
-                    <ide-action name="rebuild"/>
+                    <ide-action name="profile"/>
                     <ide-action name="debug"/>
                     <action>
                         <script>${ant.script}</script>

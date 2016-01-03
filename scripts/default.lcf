@@ -86,3 +86,4 @@ log4j.category.org.eclipse.jetty=WARN
 # log4j.category.jmri.jmrit.symbolicprog.LongAddrVariableValueTest=DEBUG
 # log4j.category.jmri.jmrix.nce=DEBUG
 # log4j.category.jmri.jmrix.nce.NceTrafficController=WARN
+log4j.category.jmri.jmrit.dispatcher=DEBUG
